@@ -11,6 +11,7 @@ import {customIdToString, firstBiggerThanSecond, getElementId, LOAD_MULTIPLE_LIM
 import accountingModelMap from "../entities/accounting/accountingModelMap"
 import baseModelMap from "../entities/base/baseModelMap"
 import gossipModelMap from "../entities/gossip/gossipModelMap"
+import storageModelMap from "../entities/storage/storageModelMap"
 import {TypeRef} from "./utils/TypeRef";
 import storageModelMap from "../entities/storage/storageModelMap"
 
