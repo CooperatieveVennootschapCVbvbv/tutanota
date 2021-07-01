@@ -4,6 +4,7 @@ import {create} from "../../common/utils/EntityUtils"
 import {TypeRef} from "../../common/utils/TypeRef"
 
 import type {AdministratedGroupsRef} from "./AdministratedGroupsRef"
+import type {ArchiveType} from "./ArchiveType"
 import type {KeyPair} from "./KeyPair"
 
 export const GroupTypeRef: TypeRef<Group> = new TypeRef("sys", "Group")
@@ -81,6 +82,13 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"refType": "AdministratedGroupsRef"
 		},
+		"archives": {
+			"id": 1878,
+			"type": "AGGREGATION",
+			"cardinality": "Any",
+			"final": true,
+			"refType": "ArchiveType"
+		},
 		"keys": {
 			"id": 13,
 			"type": "AGGREGATION",
@@ -132,7 +140,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "68"
+	"version": "69"
 }
 
 export function createGroup(values?: $Shape<$Exact<Group>>): Group {
@@ -152,6 +160,7 @@ export type Group = {
 	type: NumberString;
 
 	administratedGroups: ?AdministratedGroupsRef;
+	archives: ArchiveType[];
 	keys: KeyPair[];
 	admin: ?Id;
 	customer: ?Id;

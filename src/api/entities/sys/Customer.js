@@ -213,7 +213,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "68"
+	"version": "69"
 }
 
 export function createCustomer(values?: $Shape<$Exact<Customer>>): Customer {
