@@ -20,10 +20,14 @@ import {handleRestError} from "../../common/error/RestError"
 import {fileApp} from "../../../native/common/FileApp"
 import {convertToDataFile} from "../../common/DataFile"
 import type {SuspensionHandler} from "../SuspensionHandler"
+import {uint8ArrayToBase64} from "../../common/utils/Encoding"
+import {StorageService} from "../../entities/storage/Services"
+import {uint8ArrayToBitArray} from "../crypto/CryptoUtils"
 
 assertWorkerOrNode()
 
 const REST_PATH = "/rest/tutanota/filedataservice"
+const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 export class FileFacade {
 	_login: LoginFacade;
@@ -75,7 +79,13 @@ export class FileFacade {
 				let queryParams = {'_body': encodeURIComponent(body)}
 				let url = addParamsToUrl(getHttpOrigin() + REST_PATH, queryParams)
 
-				return fileApp.download(url, file.name, headers).then(({statusCode, encryptedFileUri, errorId, precondition, suspensionTime}) => {
+				return fileApp.download(url, file.name, headers).then(({
+					                                                       statusCode,
+					                                                       encryptedFileUri,
+					                                                       errorId,
+					                                                       precondition,
+					                                                       suspensionTime
+				                                                       }) => {
 					let response;
 					if (statusCode === 200 && encryptedFileUri != null) {
 						response = aesDecryptFile(neverNull(sessionKey), encryptedFileUri).then(decryptedFileUrl => {
@@ -137,7 +147,13 @@ export class FileFacade {
 						let headers = this._login.createAuthHeaders()
 						headers['v'] = FileDataDataReturnTypeModel.version
 						let url = addParamsToUrl(getHttpOrigin() + "/rest/tutanota/filedataservice", {fileDataId})
-						return fileApp.upload(encryptedFileInfo.uri, url, headers).then(({statusCode, uri, errorId, precondition, suspensionTime}) => {
+						return fileApp.upload(encryptedFileInfo.uri, url, headers).then(({
+							                                                                 statusCode,
+							                                                                 uri,
+							                                                                 errorId,
+							                                                                 precondition,
+							                                                                 suspensionTime
+						                                                                 }) => {
 							if (statusCode === 200) {
 								return fileDataId;
 							} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
@@ -149,5 +165,17 @@ export class FileFacade {
 						})
 					})
 			})
+	}
+
+	uploadBlob(dataFile: DataFile, sessionKey: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<Id> {
+		let encryptedData = encryptBytes(uint8ArrayToBitArray(sessionKey), dataFile.data)
+		const headers = this._login.createAuthHeaders()
+		// add version when we can get it
+
+		return this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT,
+			{
+				storageAuthToken,
+				hash: uint8ArrayToBase64(hash)
+			}, headers, encryptedData, MediaType.Binary)
 	}
 }

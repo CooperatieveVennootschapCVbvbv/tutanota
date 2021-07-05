@@ -190,6 +190,8 @@ const map: {[string]: () => mixed} = {
     Braintree3ds2Request: () => import('./Braintree3ds2Request'),
     Braintree3ds2Response: () => import('./Braintree3ds2Response'),
     PaymentDataServicePostData: () => import('./PaymentDataServicePostData'),
-    PaymentDataServiceGetData: () => import('./PaymentDataServiceGetData')
+    PaymentDataServiceGetData: () => import('./PaymentDataServiceGetData'),
+    ArchiveRef: () => import('./ArchiveRef'),
+    ArchiveType: () => import('./ArchiveType')
 }
 export default map

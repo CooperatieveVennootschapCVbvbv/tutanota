@@ -1,1 +1,1 @@
-type StorageServiceEnum = "dummy-no-real-service"
+type StorageServiceEnum = "blobservice"

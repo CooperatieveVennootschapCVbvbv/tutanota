@@ -265,6 +265,10 @@ export class WorkerClient implements EntityRestInterface {
 		return this._postRequest(new Request('downloadFileContentNative', arguments))
 	}
 
+	uploadBlob(dataFile: DataFile, sessionKey: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<void> {
+		return this._postRequest(new Request('uploadBlob', arguments))
+	}
+
 	changeUserPassword(user: User, newPassword: string): Promise<void> {
 		return this._postRequest(new Request('changeUserPassword', arguments))
 	}
@@ -636,6 +640,8 @@ export class WorkerClient implements EntityRestInterface {
 	urlify(html: string): Promise<string> {
 		return this._postRequest(new Request('urlify', arguments))
 	}
+
+
 }
 
 export const worker: WorkerClient = new WorkerClient()

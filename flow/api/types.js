@@ -149,6 +149,7 @@ type WorkerRequestType = 'setup'
 	| 'getGiftCardInfo'
 	| 'createTemplateGroup'
 	| 'urlify'
+	| 'uploadBlob'
 
 type MainRequestType = 'execNative'
 	| 'entityEvent'

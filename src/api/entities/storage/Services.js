@@ -1,4 +1,5 @@
 // @flow
 
-export const StorageService: {||} = Object.freeze({
+export const StorageService = Object.freeze({
+	BlobService: "blobservice"
 })
