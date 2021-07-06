@@ -12,6 +12,7 @@ import {HttpMethod, MediaType} from "../../common/EntityFunctions"
 import {uint8ArrayToArrayBuffer} from "../../common/utils/Encoding"
 import {SuspensionHandler} from "../SuspensionHandler"
 import {REQUEST_SIZE_LIMIT_DEFAULT, REQUEST_SIZE_LIMIT_MAP} from "../../common/TutanotaConstants"
+import {typedEntries} from "../../common/utils/Utils"
 
 assertWorkerOrNode()
 
@@ -37,11 +38,11 @@ export class RestClient {
 					if (!queryParams) {
 						queryParams = {}
 					}
-					queryParams['_body'] = encodeURIComponent(body) // get requests are not allowed to send a body. Therefore, we convert our body to a paramater
+					queryParams['_body'] = body // get requests are not allowed to send a body. Therefore, we convert our body to a paramater
 				}
-				let url = addParamsToUrl(this.url + path, queryParams)
+				let url = addParamsToUrl(new URL(this.url + path), queryParams)
 				var xhr = new XMLHttpRequest()
-				xhr.open(method, url)
+				xhr.open(method, url.toString())
 				this._setHeaders(xhr, headers, body, responseType);
 				xhr.responseType = (responseType === MediaType.Json || responseType === MediaType.Text) ? "text" : 'arraybuffer'
 
@@ -175,13 +176,11 @@ export class RestClient {
 }
 
 
-export function addParamsToUrl(url: string, urlParams: Params): string {
+export function addParamsToUrl(url: URL, urlParams: Params): URL {
 	if (urlParams) {
-		url += "?"
-		for (var key in urlParams) {
-			url += key + "=" + urlParams[key] + "&"
+		for (const [key, value] of typedEntries(urlParams)) {
+			url.searchParams.set(key, value)
 		}
-		url = url.substring(0, url.length - 1)
 	}
 	return url
 }

@@ -132,8 +132,14 @@ export class WorkerImpl {
 			downloadFileContentNative: (message: Request) => {
 				return locator.file.downloadFileContentNative.apply(locator.file, message.args)
 			},
+			encryptAndHash: (message: Request) => {
+				return locator.file.encryptAndHash(...message.args)
+			},
 			uploadBlob: (message: Request) => {
 				return locator.file.uploadBlob(...message.args)
+			},
+			downloadBlobs: (message: Request) => {
+				return locator.file.downloadBlobs(...message.args)
 			},
 			addMailAlias: (message: Request) => {
 				return locator.mailAddress.addMailAlias.apply(locator.mailAddress, message.args)

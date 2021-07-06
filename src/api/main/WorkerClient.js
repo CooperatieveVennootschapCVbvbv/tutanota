@@ -265,8 +265,17 @@ export class WorkerClient implements EntityRestInterface {
 		return this._postRequest(new Request('downloadFileContentNative', arguments))
 	}
 
-	uploadBlob(dataFile: DataFile, sessionKey: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<void> {
+	// only for admin client
+	encryptAndHash(data: Uint8Array, sessionKey: Uint8Array): Promise<{encryptedData:Uint8Array, hash: Uint8Array}> {
+		return this._postRequest(new Request('encryptAndHash', arguments))
+	}
+
+	uploadBlob(encryptedData: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<void> {
 		return this._postRequest(new Request('uploadBlob', arguments))
+	}
+
+	downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>): Promise<Uint8Array> {
+		return this._postRequest(new Request("downloadBlobs", arguments))
 	}
 
 	changeUserPassword(user: User, newPassword: string): Promise<void> {

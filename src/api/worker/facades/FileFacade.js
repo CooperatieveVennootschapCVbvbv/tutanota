@@ -23,6 +23,9 @@ import type {SuspensionHandler} from "../SuspensionHandler"
 import {uint8ArrayToBase64} from "../../common/utils/Encoding"
 import {StorageService} from "../../entities/storage/Services"
 import {uint8ArrayToBitArray} from "../crypto/CryptoUtils"
+import {hash} from "../crypto/Sha256"
+import {_TypeModel as BlobServiceGetDataTypeModel, createBlobServiceGetData} from "../../entities/storage/BlobServiceGetData"
+import {createBlobHash} from "../../entities/storage/BlobHash"
 
 assertWorkerOrNode()
 
@@ -76,16 +79,16 @@ export class FileFacade {
 				let headers = this._login.createAuthHeaders()
 				headers['v'] = FileDataDataGetTypModel.version
 				let body = JSON.stringify(entityToSend)
-				let queryParams = {'_body': encodeURIComponent(body)}
-				let url = addParamsToUrl(getHttpOrigin() + REST_PATH, queryParams)
+				let queryParams = {'_body': body}
+				let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
 
-				return fileApp.download(url, file.name, headers).then(({
-					                                                       statusCode,
-					                                                       encryptedFileUri,
-					                                                       errorId,
-					                                                       precondition,
-					                                                       suspensionTime
-				                                                       }) => {
+				return fileApp.download(url.toString(), file.name, headers).then(({
+					                                                                  statusCode,
+					                                                                  encryptedFileUri,
+					                                                                  errorId,
+					                                                                  precondition,
+					                                                                  suspensionTime
+				                                                                  }) => {
 					let response;
 					if (statusCode === 200 && encryptedFileUri != null) {
 						response = aesDecryptFile(neverNull(sessionKey), encryptedFileUri).then(decryptedFileUrl => {
@@ -101,7 +104,7 @@ export class FileFacade {
 						this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
 						response = this._suspensionHandler.deferRequest(() => this.downloadFileContentNative(file))
 					} else {
-						response = Promise.reject(handleRestError(statusCode, ` | GET ${url} failed to natively download attachment`, errorId, precondition))
+						response = Promise.reject(handleRestError(statusCode, ` | GET ${url.toString()} failed to natively download attachment`, errorId, precondition))
 					}
 
 					return response.finally(() => encryptedFileUri != null && fileApp.deleteFile(encryptedFileUri)
@@ -146,29 +149,34 @@ export class FileFacade {
 						let fileDataId = fileDataPostReturn.fileData
 						let headers = this._login.createAuthHeaders()
 						headers['v'] = FileDataDataReturnTypeModel.version
-						let url = addParamsToUrl(getHttpOrigin() + "/rest/tutanota/filedataservice", {fileDataId})
-						return fileApp.upload(encryptedFileInfo.uri, url, headers).then(({
-							                                                                 statusCode,
-							                                                                 uri,
-							                                                                 errorId,
-							                                                                 precondition,
-							                                                                 suspensionTime
-						                                                                 }) => {
+						let url = addParamsToUrl(new URL(getHttpOrigin() + "/rest/tutanota/filedataservice"), {fileDataId})
+						return fileApp.upload(encryptedFileInfo.uri, url.toString(), headers).then(({
+							                                                                            statusCode,
+							                                                                            uri,
+							                                                                            errorId,
+							                                                                            precondition,
+							                                                                            suspensionTime
+						                                                                            }) => {
 							if (statusCode === 200) {
 								return fileDataId;
 							} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
 								this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
 								return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
 							} else {
-								throw handleRestError(statusCode, ` | PUT ${url} failed to natively upload attachment`, errorId, precondition)
+								throw handleRestError(statusCode, ` | PUT ${url.toString()} failed to natively upload attachment`, errorId, precondition)
 							}
 						})
 					})
 			})
 	}
 
-	uploadBlob(dataFile: DataFile, sessionKey: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<Id> {
-		let encryptedData = encryptBytes(uint8ArrayToBitArray(sessionKey), dataFile.data)
+	async encryptAndHash(data: Uint8Array, sessionKey: Uint8Array): Promise<{encryptedData: Uint8Array, hash: Uint8Array}> {
+		const encryptedData = encryptBytes(uint8ArrayToBitArray(sessionKey), data)
+		const hashed = hash(encryptedData)
+		return {encryptedData, hash: hashed}
+	}
+
+	uploadBlob(encryptedData: Uint8Array, hash: Uint8Array, storageAuthToken: string): Promise<void> {
 		const headers = this._login.createAuthHeaders()
 		// add version when we can get it
 
@@ -177,5 +185,16 @@ export class FileFacade {
 				storageAuthToken,
 				hash: uint8ArrayToBase64(hash)
 			}, headers, encryptedData, MediaType.Binary)
+	}
+
+	async downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>): Promise<Uint8Array> {
+		const headers = this._login.createAuthHeaders()
+		const getData = createBlobServiceGetData({
+			archiveId,
+			blobs: blobIds.map((hash) => createBlobHash({hash}))
+		})
+		const literalGetData = await encryptAndMapToLiteral(BlobServiceGetDataTypeModel, getData, null)
+		const body = JSON.stringify(literalGetData)
+		return this._restClient.request(STORAGE_REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
 	}
 }
