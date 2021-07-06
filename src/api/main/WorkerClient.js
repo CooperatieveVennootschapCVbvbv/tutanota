@@ -266,7 +266,7 @@ export class WorkerClient implements EntityRestInterface {
 	}
 
 	// only for admin client
-	encryptAndHash(data: Uint8Array, sessionKey: Uint8Array): Promise<{encryptedData:Uint8Array, hash: Uint8Array}> {
+	encryptAndHash(data: Uint8Array, sessionKey: Uint8Array): Promise<{encryptedData: Uint8Array, hash: Uint8Array}> {
 		return this._postRequest(new Request('encryptAndHash', arguments))
 	}
 
@@ -274,7 +274,7 @@ export class WorkerClient implements EntityRestInterface {
 		return this._postRequest(new Request('uploadBlob', arguments))
 	}
 
-	downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>): Promise<Uint8Array> {
+	downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>, key: Uint8Array): Promise<Uint8Array> {
 		return this._postRequest(new Request("downloadBlobs", arguments))
 	}
 

@@ -22,7 +22,7 @@ import {convertToDataFile} from "../../common/DataFile"
 import type {SuspensionHandler} from "../SuspensionHandler"
 import {uint8ArrayToBase64} from "../../common/utils/Encoding"
 import {StorageService} from "../../entities/storage/Services"
-import {uint8ArrayToBitArray} from "../crypto/CryptoUtils"
+import {uint8ArrayToBitArray, uint8ArrayToKey} from "../crypto/CryptoUtils"
 import {hash} from "../crypto/Sha256"
 import {_TypeModel as BlobServiceGetDataTypeModel, createBlobServiceGetData} from "../../entities/storage/BlobServiceGetData"
 import {createBlobHash} from "../../entities/storage/BlobHash"
@@ -187,7 +187,7 @@ export class FileFacade {
 			}, headers, encryptedData, MediaType.Binary)
 	}
 
-	async downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>): Promise<Uint8Array> {
+	async downloadBlobs(archiveId: Id, blobIds: $ReadOnlyArray<Uint8Array>, key: Uint8Array): Promise<Uint8Array> {
 		const headers = this._login.createAuthHeaders()
 		const getData = createBlobServiceGetData({
 			archiveId,
@@ -195,6 +195,7 @@ export class FileFacade {
 		})
 		const literalGetData = await encryptAndMapToLiteral(BlobServiceGetDataTypeModel, getData, null)
 		const body = JSON.stringify(literalGetData)
-		return this._restClient.request(STORAGE_REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
+		const data = await this._restClient.request(STORAGE_REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
+		return aes128Decrypt(uint8ArrayToKey(key), data)
 	}
 }
