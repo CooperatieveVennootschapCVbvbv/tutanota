@@ -1,9 +1,15 @@
 //@flow
 import type {GroupTypeEnum} from "../../common/TutanotaConstants"
-import {getMembershipGroupType, GroupType, NOTHING_INDEXED_TIMESTAMP, OperationType} from "../../common/TutanotaConstants"
+import {
+	ENTITY_EVENT_BATCH_TTL_MS,
+	getMembershipGroupType,
+	GroupType,
+	NOTHING_INDEXED_TIMESTAMP,
+	OperationType
+} from "../../common/TutanotaConstants"
 import {NotAuthorizedError} from "../../common/error/RestError"
 import {EntityEventBatchTypeRef} from "../../entities/sys/EntityEventBatch"
-import type {DbKey, DbTransaction, DatabaseEntry, ObjectStoreName} from "./DbFacade"
+import type {DatabaseEntry, DbKey, DbTransaction, ObjectStoreName} from "./DbFacade"
 import {b64UserIdHash, DbFacade} from "./DbFacade"
 import type {DeferredObject} from "../../common/utils/Utils"
 import {defer, downcast, neverNull, noOp} from "../../common/utils/Utils"
@@ -50,7 +56,9 @@ export const Metadata = {
 	userEncDbKey: "userEncDbKey",
 	mailIndexingEnabled: "mailIndexingEnabled",
 	excludedListIds: "excludedListIds", // stored in the database, so the mailbox does not need to be loaded when starting to index mails except spam folder after login
-	encDbIv: "encDbIv"
+	encDbIv: "encDbIv",
+	// server timestamp of the last time we indexed on this client, in millis
+	lastEventIndexTimeMs: "lastEventIndexTimeMs"
 }
 
 export type InitParams = {
@@ -119,6 +127,7 @@ export class Indexer {
 
 	_core: IndexerCore;
 	_entity: EntityClient;
+	_entityRestClient: EntityRestClient
 	_indexedGroupIds: Array<Id>;
 
 	constructor(entityRestClient: EntityRestClient, worker: WorkerImpl, browserData: BrowserData, defaultEntityRestCache: EntityRestInterface) {
@@ -133,6 +142,7 @@ export class Indexer {
 		this._worker = worker
 		this._core = new IndexerCore(this.db, new EventQueue(true, (batch) => this._processEntityEvents(batch)),
 			browserData)
+		this._entityRestClient = entityRestClient
 		this._entity = new EntityClient(defaultEntityRestCache)
 		this._contact = new ContactIndexer(this._core, this.db, this._entity, new SuggestionFacade(ContactTypeRef, this.db))
 		this._whitelabelChildIndexer = new WhitelabelChildIndexer(this._core, this.db, this._entity, new SuggestionFacade(WhitelabelChildTypeRef, this.db))
@@ -154,26 +164,28 @@ export class Indexer {
 	/**
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
-	init(user: User, userGroupKey: Aes128Key, retryOnError: boolean = true): Promise<void> {
+	async init(user: User, userGroupKey: Aes128Key, retryOnError: boolean = true): Promise<void> {
 		this._initParams = {
 			user,
 			groupKey: userGroupKey,
 		}
-		return this.db.dbFacade.open(b64UserIdHash(user)).then(() => {
-			let dbInit = (): Promise<void> => {
-				return this.db.dbFacade.createTransaction(true, [MetaDataOS]).then(t => {
-					return t.get(MetaDataOS, Metadata.userEncDbKey).then(userEncDbKey => {
-						if (!userEncDbKey) {
-							// database was opened for the first time - create new tables
-							return this._createIndexTables(user, userGroupKey)
-						} else {
-							return this._loadIndexTables(t, user, userGroupKey, userEncDbKey)
-						}
-					}).then(() => t.wait())
-				})
+
+		try {
+			await this.db.dbFacade.open(b64UserIdHash(user))
+
+			const transaction = await this.db.dbFacade.createTransaction(true, [MetaDataOS])
+			const userEncDbKey = await transaction.get(MetaDataOS, Metadata.userEncDbKey)
+			if (!userEncDbKey) {
+				// database was opened for the first time - create new tables
+				await this._createIndexTables(user, userGroupKey)
+			} else {
+				await this._loadIndexTables(transaction, user, userGroupKey, userEncDbKey)
 			}
-			return dbInit().then(() => {
-				this._worker.sendIndexState({
+
+			await transaction.wait()
+
+			try {
+				await this._worker.sendIndexState({
 					initializing: false,
 					mailIndexEnabled: this._mail.mailIndexingEnabled,
 					progress: 0,
@@ -182,17 +194,28 @@ export class Indexer {
 					failedIndexingUpTo: null
 				})
 				this._core.startProcessing()
-				return this._contact.indexFullContactList(user.userGroup.group)
-				           .then(() => this._groupInfo.indexAllUserAndTeamGroupInfosForAdmin(user))
-				           .then(() => this._whitelabelChildIndexer.indexAllWhitelabelChildrenForAdmin(user))
-				           .then(() => this._mail.mailboxIndexingPromise.then(() => this._mail.indexMailboxes(user, this._mail.currentIndexTimestamp)))
-				           .then(() => this._loadPersistentGroupData(user)
-				                           .then(groupIdToEventBatches => this._loadNewEntities(groupIdToEventBatches)))
-				           .catch(OutOfSyncError, e => {
-					           console.log("out of sync - delete database and disable mail indexing")
-					           return this.disableMailIndexing("found to be out of sync when loading new entities")
-				           })
-			}).catch(e => {
+				await this._contact.indexFullContactList(user.userGroup.group)
+				await this._groupInfo.indexAllUserAndTeamGroupInfosForAdmin(user)
+				await this._whitelabelChildIndexer.indexAllWhitelabelChildrenForAdmin(user)
+				await this._mail.mailboxIndexingPromise
+				await this._mail.indexMailboxes(user, this._mail.currentIndexTimestamp)
+				try {
+
+					if (await this._isOutOfDate()) {
+						return this.disableMailIndexing(`out of date`)
+					}
+
+					const groupIdToEventBatches = await this._loadPersistentGroupData(user)
+					await this._loadNewEntities(groupIdToEventBatches)
+					await this._writeServerTimestamp()
+
+				} catch (e) {
+					if (e instanceof OutOfSyncError) {
+						console.log("out of sync - delete database and disable mail indexing")
+						return this.disableMailIndexing("found to be out of sync when loading new entities")
+					}
+				}
+			} catch (e) {
 				if (retryOnError && (e instanceof MembershipRemovedError || e instanceof InvalidDatabaseStateError)) {
 					// in case of MembershipRemovedError mail or contact group has been removed from user.
 					// in case of InvalidDatabaseError no group id has been stored to the database.
@@ -204,9 +227,9 @@ export class Indexer {
 				} else {
 					throw e
 				}
-			})
-		}).catch(e => {
-			this._worker.sendIndexState({
+			}
+		} catch (e) {
+			await this._worker.sendIndexState({
 				initializing: false,
 				mailIndexEnabled: this._mail.mailIndexingEnabled,
 				progress: 0,
@@ -216,7 +239,7 @@ export class Indexer {
 			})
 			this._dbInitializedDeferredObject.reject(e)
 			throw e
-		})
+		}
 	}
 
 	enableMailIndexing(): Promise<void> {
@@ -276,53 +299,50 @@ export class Indexer {
 		})
 	}
 
-	_createIndexTables(user: User, userGroupKey: Aes128Key): Promise<void> {
-		return this._loadGroupData(user)
-		           .then((groupBatches: {groupId: Id, groupData: GroupData}[]) => {
-			           return this.db.dbFacade.createTransaction(false, [MetaDataOS, GroupDataOS])
-			                      .then(t2 => {
-				                      this.db.key = aes256RandomKey()
-				                      this.db.iv = random.generateRandomData(IV_BYTE_LENGTH)
-				                      t2.put(MetaDataOS, Metadata.userEncDbKey, encrypt256Key(userGroupKey, this.db.key))
-				                      t2.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
-				                      t2.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
-				                      t2.put(MetaDataOS, Metadata.encDbIv, aes256Encrypt(this.db.key, this.db.iv, random.generateRandomData(IV_BYTE_LENGTH), true, false))
-				                      return this._initGroupData(groupBatches, t2)
-			                      })
-		           })
-		           .then(() => this._updateIndexedGroups())
-		           .then(() => {
-			           this._dbInitializedDeferredObject.resolve()
-		           })
+	async _createIndexTables(user: User, userGroupKey: Aes128Key): Promise<void> {
+		this.db.key = aes256RandomKey()
+		this.db.iv = random.generateRandomData(IV_BYTE_LENGTH)
+
+		const groupBatches = await this._loadGroupData(user)
+		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS, GroupDataOS])
+		await transaction.put(MetaDataOS, Metadata.userEncDbKey, encrypt256Key(userGroupKey, this.db.key))
+		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
+		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
+		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256Encrypt(this.db.key, this.db.iv, random.generateRandomData(IV_BYTE_LENGTH), true, false))
+		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, null);
+		await this._initGroupData(groupBatches, transaction)
+		await this._updateIndexedGroups()
+		await this._dbInitializedDeferredObject.resolve()
 	}
 
 
-	_loadIndexTables(t: DbTransaction, user: User, userGroupKey: Aes128Key, userEncDbKey: Uint8Array): Promise<void> {
+	async _loadIndexTables(transaction: DbTransaction, user: User, userGroupKey: Aes128Key, userEncDbKey: Uint8Array): Promise<void> {
 		this.db.key = decrypt256Key(userGroupKey, userEncDbKey)
-		return t.get(MetaDataOS, Metadata.encDbIv).then(encDbIv => {
-			this.db.iv = aes256Decrypt(this.db.key, neverNull(encDbIv), true, false)
-		}).then(() => Promise.all([
-			t.get(MetaDataOS, Metadata.mailIndexingEnabled).then(mailIndexingEnabled => {
+
+
+		const encDbIv = await transaction.get(MetaDataOS, Metadata.encDbIv)
+		this.db.iv = aes256Decrypt(this.db.key, neverNull(encDbIv), true, false)
+
+		await Promise.all([
+			transaction.get(MetaDataOS, Metadata.mailIndexingEnabled).then(mailIndexingEnabled => {
 				this._mail.mailIndexingEnabled = neverNull(mailIndexingEnabled)
 			}),
-			t.get(MetaDataOS, Metadata.excludedListIds).then(excludedListIds => {
+			transaction.get(MetaDataOS, Metadata.excludedListIds).then(excludedListIds => {
 				this._mail._excludedListIds = neverNull(excludedListIds)
 			}),
-
 			this._loadGroupDiff(user)
 			    .then(groupDiff => this._updateGroups(user, groupDiff))
 			    .then(() => this._mail.updateCurrentIndexTimestamp(user))
-		]).then(() => {
-			return this._updateIndexedGroups()
-		}).then(() => {
-			this._dbInitializedDeferredObject.resolve()
-		}).then(() => {
-			return Promise.all([
-				this._contact.suggestionFacade.load(),
-				this._groupInfo.suggestionFacade.load(),
-				this._whitelabelChildIndexer.suggestionFacade.load()
-			])
-		})).return()
+		])
+
+		await this._updateIndexedGroups()
+		this._dbInitializedDeferredObject.resolve()
+
+		await Promise.all([
+			this._contact.suggestionFacade.load(),
+			this._groupInfo.suggestionFacade.load(),
+			this._whitelabelChildIndexer.suggestionFacade.load()
+		])
 	}
 
 
@@ -459,7 +479,9 @@ export class Indexer {
 							           // the index.
 							           throw new OutOfSyncError()
 						           }
+
 						           batchesOfAllGroups.push(...batchesToQueue)
+
 					           })
 					           .catch(NotAuthorizedError, () => {
 						           console.log("could not download entity updates => lost permission on list")
@@ -526,7 +548,8 @@ export class Indexer {
 					return Promise.resolve()
 				}
 				markStart("processEntityEvents")
-				let groupedEvents: Map<TypeRef<any>, EntityUpdate[]> = events.reduce((all: Map<TypeRef<any>, EntityUpdate[]>, update: EntityUpdate) => {
+				let groupedEvents: Map<TypeRef<any>, EntityUpdate[]> = events.reduce((all: Map<TypeRef<any>, EntityUpdate[]>, update: EntityUpdate) =>
+				{
 					if (isSameTypeRefByAttr(MailTypeRef, update.application, update.type)) {
 						getFromMap(all, MailTypeRef, () => []).push(update)
 					} else if (isSameTypeRefByAttr(ContactTypeRef, update.application, update.type)) {
@@ -599,6 +622,24 @@ export class Indexer {
 			}
 			return Promise.resolve()
 		})).return()
+	}
+
+	async _isOutOfDate(): Promise<boolean> {
+		const transaction = await this.db.dbFacade.createTransaction(true, [MetaDataOS])
+		const lastIndexTime = await transaction.get(MetaDataOS, Metadata.lastEventIndexTimeMs)
+		if (lastIndexTime) {
+			const now = this._entityRestClient.getRestClient().getServerTimestamp()
+			if (now - lastIndexTime >= ENTITY_EVENT_BATCH_TTL_MS) {
+				return true
+			}
+		}
+		return false
+	}
+
+	async _writeServerTimestamp() {
+		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS])
+		const now = this._entityRestClient.getRestClient().getServerTimestamp()
+		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, now)
 	}
 }
 
