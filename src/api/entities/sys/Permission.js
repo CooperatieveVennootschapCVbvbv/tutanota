@@ -99,7 +99,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "Bucket"
+			"refType": "Bucket",
+			"dependency": null
 		},
 		"group": {
 			"id": 141,

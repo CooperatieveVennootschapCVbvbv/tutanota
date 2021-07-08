@@ -157,21 +157,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "BookingsRef"
+			"refType": "BookingsRef",
+			"dependency": null
 		},
 		"domainInfos": {
 			"id": 726,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "DomainInfo"
+			"refType": "DomainInfo",
+			"dependency": null
 		},
 		"giftCards": {
 			"id": 1794,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "GiftCardsRef"
+			"refType": "GiftCardsRef",
+			"dependency": null
 		},
 		"accountingInfo": {
 			"id": 159,

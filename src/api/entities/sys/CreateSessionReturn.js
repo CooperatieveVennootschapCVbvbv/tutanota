@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "Challenge"
+			"refType": "Challenge",
+			"dependency": null
 		},
 		"user": {
 			"id": 1223,

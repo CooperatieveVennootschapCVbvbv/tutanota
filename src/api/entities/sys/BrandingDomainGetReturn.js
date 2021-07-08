@@ -29,7 +29,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "CertificateInfo"
+			"refType": "CertificateInfo",
+			"dependency": null
 		}
 	},
 	"app": "sys",

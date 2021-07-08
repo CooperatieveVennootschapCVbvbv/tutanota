@@ -269,14 +269,15 @@ type ModelValue = {
 	type: ValueTypeEnum,
 	cardinality: CardinalityEnum,
 	final: boolean,
-	encrypted: boolean
+	encrypted: boolean,
 }
 
 type ModelAssociation = {
 	id: number,
 	type: AssociationTypeEnum,
 	cardinality: CardinalityEnum,
-	refType: string
+	refType: string,
+	dependency: ?string,
 }
 
 type EnvMode = "Browser" | "App" | "Test" | "Playground" | "Desktop" | "Admin"
@@ -288,7 +289,7 @@ type EnvType = {
 	dist: boolean,
 	versionNumber: string,
 	timeout: number,
-	systemConfig: any
+	systemConfig: any,
 }
 
 declare var env: EnvType

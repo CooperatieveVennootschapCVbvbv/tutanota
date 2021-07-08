@@ -99,7 +99,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "MailAddressAlias"
+			"refType": "MailAddressAlias",
+			"dependency": null
 		},
 		"group": {
 			"id": 20,

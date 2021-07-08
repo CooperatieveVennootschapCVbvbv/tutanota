@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "WebsocketCounterValue"
+			"refType": "WebsocketCounterValue",
+			"dependency": null
 		}
 	},
 	"app": "sys",

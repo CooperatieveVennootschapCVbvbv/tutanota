@@ -43,7 +43,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "EntityUpdate"
+			"refType": "EntityUpdate",
+			"dependency": null
 		}
 	},
 	"app": "sys",

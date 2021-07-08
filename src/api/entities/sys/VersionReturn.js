@@ -29,7 +29,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "Version"
+			"refType": "Version",
+			"dependency": null
 		}
 	},
 	"app": "sys",

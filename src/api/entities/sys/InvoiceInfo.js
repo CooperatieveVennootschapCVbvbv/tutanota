@@ -127,7 +127,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "PaymentErrorInfo"
+			"refType": "PaymentErrorInfo",
+			"dependency": null
 		},
 		"invoices": {
 			"id": 760,

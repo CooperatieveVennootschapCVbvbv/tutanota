@@ -57,7 +57,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "AlarmInfo"
+			"refType": "AlarmInfo",
+			"dependency": null
 		}
 	},
 	"app": "sys",

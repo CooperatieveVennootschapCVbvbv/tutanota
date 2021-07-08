@@ -80,21 +80,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "AdministratedGroupsRef"
+			"refType": "AdministratedGroupsRef",
+			"dependency": null
 		},
 		"archives": {
 			"id": 1878,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "ArchiveType"
+			"refType": "ArchiveType",
+			"dependency": null
 		},
 		"keys": {
 			"id": 13,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "KeyPair"
+			"refType": "KeyPair",
+			"dependency": null
 		},
 		"admin": {
 			"id": 224,

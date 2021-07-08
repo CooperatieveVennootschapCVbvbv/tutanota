@@ -94,21 +94,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "BootstrapFeature"
+			"refType": "BootstrapFeature",
+			"dependency": null
 		},
 		"certificateInfo": {
 			"id": 1506,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "CertificateInfo"
+			"refType": "CertificateInfo",
+			"dependency": null
 		},
 		"whitelabelRegistrationDomains": {
 			"id": 1728,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "StringWrapper"
+			"refType": "StringWrapper",
+			"dependency": null
 		}
 	},
 	"app": "sys",

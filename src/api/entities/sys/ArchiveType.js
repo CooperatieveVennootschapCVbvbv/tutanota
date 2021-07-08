@@ -43,14 +43,16 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "ArchiveRef"
+			"refType": "ArchiveRef",
+			"dependency": null
 		},
 		"inactive": {
 			"id": 1877,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "ArchiveRef"
+			"refType": "ArchiveRef",
+			"dependency": null
 		}
 	},
 	"app": "sys",

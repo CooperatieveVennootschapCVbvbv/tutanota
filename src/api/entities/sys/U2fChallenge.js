@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "U2fKey"
+			"refType": "U2fKey",
+			"dependency": null
 		}
 	},
 	"app": "sys",

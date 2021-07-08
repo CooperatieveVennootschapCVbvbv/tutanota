@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "Braintree3ds2Request"
+			"refType": "Braintree3ds2Request",
+			"dependency": null
 		}
 	},
 	"app": "sys",

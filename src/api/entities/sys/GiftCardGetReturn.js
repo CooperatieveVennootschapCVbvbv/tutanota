@@ -43,7 +43,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "GiftCardOption"
+			"refType": "GiftCardOption",
+			"dependency": null
 		}
 	},
 	"app": "sys",

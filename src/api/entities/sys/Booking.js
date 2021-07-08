@@ -99,7 +99,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "BookingItem"
+			"refType": "BookingItem",
+			"dependency": null
 		}
 	},
 	"app": "sys",

@@ -43,21 +43,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "PriceData"
+			"refType": "PriceData",
+			"dependency": null
 		},
 		"currentPriceThisPeriod": {
 			"id": 863,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "PriceData"
+			"refType": "PriceData",
+			"dependency": null
 		},
 		"futurePriceNextPeriod": {
 			"id": 865,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "PriceData"
+			"refType": "PriceData",
+			"dependency": null
 		}
 	},
 	"app": "sys",

@@ -50,7 +50,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "PriceItemData"
+			"refType": "PriceItemData",
+			"dependency": null
 		}
 	},
 	"app": "sys",

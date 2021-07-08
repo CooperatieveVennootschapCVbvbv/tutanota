@@ -43,7 +43,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "CalendarEventRef"
+			"refType": "CalendarEventRef",
+			"dependency": null
 		}
 	},
 	"app": "sys",

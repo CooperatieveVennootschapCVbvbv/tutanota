@@ -36,21 +36,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "DnsRecord"
+			"refType": "DnsRecord",
+			"dependency": null
 		},
 		"missingRecords": {
 			"id": 1592,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "DnsRecord"
+			"refType": "DnsRecord",
+			"dependency": null
 		},
 		"requiredRecords": {
 			"id": 1758,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "DnsRecord"
+			"refType": "DnsRecord",
+			"dependency": null
 		}
 	},
 	"app": "sys",

@@ -43,14 +43,16 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "File"
+			"refType": "File",
+			"dependency": null
 		},
 		"smallLogo": {
 			"id": 924,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "File"
+			"refType": "File",
+			"dependency": null
 		}
 	},
 	"app": "sys",

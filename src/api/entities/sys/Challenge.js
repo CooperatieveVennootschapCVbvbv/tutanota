@@ -37,14 +37,16 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "OtpChallenge"
+			"refType": "OtpChallenge",
+			"dependency": null
 		},
 		"u2f": {
 			"id": 1190,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "U2fChallenge"
+			"refType": "U2fChallenge",
+			"dependency": null
 		}
 	},
 	"app": "sys",

@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "GeneratedIdWrapper"
+			"refType": "GeneratedIdWrapper",
+			"dependency": null
 		}
 	},
 	"app": "sys",

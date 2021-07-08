@@ -43,35 +43,40 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "PlanPrices"
+			"refType": "PlanPrices",
+			"dependency": null
 		},
 		"premiumPrices": {
 			"id": 1473,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "PlanPrices"
+			"refType": "PlanPrices",
+			"dependency": null
 		},
 		"proPrices": {
 			"id": 1474,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "PlanPrices"
+			"refType": "PlanPrices",
+			"dependency": null
 		},
 		"teamsBusinessPrices": {
 			"id": 1867,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "PlanPrices"
+			"refType": "PlanPrices",
+			"dependency": null
 		},
 		"teamsPrices": {
 			"id": 1729,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "PlanPrices"
+			"refType": "PlanPrices",
+			"dependency": null
 		}
 	},
 	"app": "sys",

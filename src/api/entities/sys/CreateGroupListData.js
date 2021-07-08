@@ -43,7 +43,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "CreateGroupData"
+			"refType": "CreateGroupData",
+			"dependency": null
 		}
 	},
 	"app": "sys",

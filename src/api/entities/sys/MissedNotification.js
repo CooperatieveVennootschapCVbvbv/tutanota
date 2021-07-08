@@ -79,14 +79,16 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "AlarmNotification"
+			"refType": "AlarmNotification",
+			"dependency": null
 		},
 		"notificationInfos": {
 			"id": 1702,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "NotificationInfo"
+			"refType": "NotificationInfo",
+			"dependency": null
 		}
 	},
 	"app": "sys",

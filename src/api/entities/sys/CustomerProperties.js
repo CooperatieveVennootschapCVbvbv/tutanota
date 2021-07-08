@@ -65,21 +65,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "File"
+			"refType": "File",
+			"dependency": null
 		},
 		"notificationMailTemplates": {
 			"id": 1522,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "NotificationMailTemplate"
+			"refType": "NotificationMailTemplate",
+			"dependency": null
 		},
 		"smallLogo": {
 			"id": 922,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
-			"refType": "File"
+			"refType": "File",
+			"dependency": null
 		}
 	},
 	"app": "sys",

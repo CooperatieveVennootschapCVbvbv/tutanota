@@ -113,28 +113,32 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "CreateGroupListData"
+			"refType": "CreateGroupListData",
+			"dependency": null
 		},
 		"customerGroupList": {
 			"id": 381,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "CreateGroupListData"
+			"refType": "CreateGroupListData",
+			"dependency": null
 		},
 		"teamGroupList": {
 			"id": 382,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "CreateGroupListData"
+			"refType": "CreateGroupListData",
+			"dependency": null
 		},
 		"userGroupList": {
 			"id": 380,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "CreateGroupListData"
+			"refType": "CreateGroupListData",
+			"dependency": null
 		}
 	},
 	"app": "sys",

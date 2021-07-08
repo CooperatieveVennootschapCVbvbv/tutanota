@@ -56,7 +56,8 @@ export function decryptAndMapToInstance<T>(model: TypeModel, instance: Object, s
 	}
 	return promiseMap(Object.keys(model.associations), (associationName) => {
 		if (model.associations[associationName].type === AssociationType.Aggregation) {
-			return resolveTypeReference(new TypeRef(model.app, model.associations[associationName].refType))
+			const dependency = model.associations[associationName].dependency
+			return resolveTypeReference(new TypeRef(dependency || model.app, model.associations[associationName].refType))
 				.then((aggregateTypeModel) => {
 					let aggregation = model.associations[associationName]
 					if (aggregation.cardinality === Cardinality.ZeroOrOne && instance[associationName] == null) {
@@ -106,7 +107,8 @@ export function encryptAndMapToLiteral<T>(model: TypeModel, instance: T, sk: ?Ae
 	}
 	return promiseMap(Object.keys(model.associations), (associationName) => {
 		if (model.associations[associationName].type === AssociationType.Aggregation) {
-			return resolveTypeReference(new TypeRef(model.app, model.associations[associationName].refType))
+			const dependency = model.associations[associationName].dependency
+			return resolveTypeReference(new TypeRef(dependency || model.app, model.associations[associationName].refType))
 				.then((aggregateTypeModel) => {
 					let aggregation = model.associations[associationName]
 					if (aggregation.cardinality === Cardinality.ZeroOrOne && i[associationName] == null) {

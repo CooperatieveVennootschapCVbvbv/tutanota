@@ -80,21 +80,24 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "EmailSenderListElement"
+			"refType": "EmailSenderListElement",
+			"dependency": null
 		},
 		"whitelabelRegistrationDomains": {
 			"id": 1279,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
-			"refType": "StringWrapper"
+			"refType": "StringWrapper",
+			"dependency": null
 		},
 		"whitelistedDomains": {
 			"id": 1099,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "DomainsRef"
+			"refType": "DomainsRef",
+			"dependency": null
 		}
 	},
 	"app": "sys",

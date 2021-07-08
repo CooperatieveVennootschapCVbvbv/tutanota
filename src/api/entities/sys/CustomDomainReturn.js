@@ -36,7 +36,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
-			"refType": "StringWrapper"
+			"refType": "StringWrapper",
+			"dependency": null
 		}
 	},
 	"app": "sys",

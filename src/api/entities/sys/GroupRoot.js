@@ -50,7 +50,8 @@ export const _TypeModel: TypeModel = {
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
-			"refType": "UserAreaGroups"
+			"refType": "UserAreaGroups",
+			"dependency": null
 		},
 		"externalGroupInfos": {
 			"id": 116,
