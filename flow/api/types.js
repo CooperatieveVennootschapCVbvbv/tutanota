@@ -272,12 +272,19 @@ type ModelValue = {
 	encrypted: boolean,
 }
 
+/**
+ * Metamodel Representation of the association (reference/aggregate).
+ */
 type ModelAssociation = {
 	id: number,
 	type: AssociationTypeEnum,
 	cardinality: CardinalityEnum,
 	refType: string,
-	dependency: ?string,
+	/**
+	 * From which model we import this association from. Currently the field only exists for aggregates because they are only ones
+	 * which can be imported across models.
+	 */
+	dependency?: ?string,
 }
 
 type EnvMode = "Browser" | "App" | "Test" | "Playground" | "Desktop" | "Admin"
