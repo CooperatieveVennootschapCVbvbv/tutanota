@@ -10,14 +10,14 @@ import {client} from "./ClientDetector"
 
 const LOG_KEY = "indexedDebugLogs"
 
-export function getSearchIndexDeletedLogs(): ?string {
+export function getSearchIndexDebugLogs(): ?string {
 	return client.localStorage()
 		? window.localStorage.getItem(LOG_KEY)
 		: null
 }
 
-export function addSearchIndexDeletedLogEntry(timestamp: Date, reason: string, user: User) {
-	const entry = `${timestamp.toUTCString()}: Deleted index for user [${getEtId(user)} because: ${reason}`
+export function addSearchIndexDebugEntry(message: string, user: User) {
+	const entry = `${Date()}: User [${getEtId(user)}]: ${message}`
 	if (client.localStorage()) {
 		const logs = window.localStorage.getItem(LOG_KEY)
 		window.localStorage.setItem(LOG_KEY, `${logs || ""}${entry}\n`)

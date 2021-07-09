@@ -255,15 +255,14 @@ export class Indexer {
 	 * @param reason: To pass to the debug logger for find the reason that this is happening at updates
 	 * @returns {Promise<R>|Promise<void>}
 	 */
-	disableMailIndexing(reason: string): Promise<void> {
-		return this.db.initialized
-		           .then(() => {
-			           if (!this._core.isStoppedProcessing()) {
-				           this._core.stopProcessing()
-				           this._worker.writeIndexerDebugLog(reason, this._initParams.user)
-				           return this._mail.disableMailIndexing().then(() => this.init(this._initParams.user, this._initParams.groupKey))
-			           }
-		           })
+	async disableMailIndexing(reason: string): Promise<void> {
+		await this.db.initialized
+		if (!this._core.isStoppedProcessing()) {
+			this._core.stopProcessing()
+			this._worker.writeIndexerDebugLog("Disabling mail indexing: " + reason, this._initParams.user)
+			await this._mail.disableMailIndexing()
+			await this.init(this._initParams.user, this._initParams.groupKey)
+		}
 	}
 
 
@@ -309,7 +308,7 @@ export class Indexer {
 		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
 		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
 		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256Encrypt(this.db.key, this.db.iv, random.generateRandomData(IV_BYTE_LENGTH), true, false))
-		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, null);
+		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, this._entityRestClient.getRestClient().getServerTimestamp());
 		await this._initGroupData(groupBatches, transaction)
 		await this._updateIndexedGroups()
 		await this._dbInitializedDeferredObject.resolve()
@@ -477,6 +476,7 @@ export class Indexer {
 							           // Bad scenario happened.
 							           // None of the events we want to process were processed before, we're too far away, stop the process and delete
 							           // the index.
+							           this._worker.writeIndexerDebugLog(`Index out of sync for group ${groupIdToEventBatch.groupId}. start id was ${startId}`, this._initParams.user)
 							           throw new OutOfSyncError()
 						           }
 
@@ -548,8 +548,7 @@ export class Indexer {
 					return Promise.resolve()
 				}
 				markStart("processEntityEvents")
-				let groupedEvents: Map<TypeRef<any>, EntityUpdate[]> = events.reduce((all: Map<TypeRef<any>, EntityUpdate[]>, update: EntityUpdate) =>
-				{
+				let groupedEvents: Map<TypeRef<any>, EntityUpdate[]> = events.reduce((all: Map<TypeRef<any>, EntityUpdate[]>, update: EntityUpdate) => {
 					if (isSameTypeRefByAttr(MailTypeRef, update.application, update.type)) {
 						getFromMap(all, MailTypeRef, () => []).push(update)
 					} else if (isSameTypeRefByAttr(ContactTypeRef, update.application, update.type)) {
@@ -562,7 +561,7 @@ export class Indexer {
 						getFromMap(all, WhitelabelChildTypeRef, () => []).push(update)
 					}
 					return all
-				}, new Map())
+				},	new Map())
 
 				markStart("processEvent")
 				return Promise.each(groupedEvents.entries(), ([key, value]) => {

@@ -3,7 +3,7 @@ import o from "ospec"
 import {createUser, UserTypeRef} from "../../../../src/api/entities/sys/User"
 import {createGroupMembership} from "../../../../src/api/entities/sys/GroupMembership"
 import {DbTransaction} from "../../../../src/api/worker/search/DbFacade"
-import {GroupType, NOTHING_INDEXED_TIMESTAMP, OperationType} from "../../../../src/api/common/TutanotaConstants"
+import {ENTITY_EVENT_BATCH_TTL_MS, GroupType, NOTHING_INDEXED_TIMESTAMP, OperationType} from "../../../../src/api/common/TutanotaConstants"
 import {Indexer, Metadata} from "../../../../src/api/worker/search/Indexer"
 import {createEntityEventBatch, EntityEventBatchTypeRef} from "../../../../src/api/entities/sys/EntityEventBatch"
 import {NotAuthorizedError} from "../../../../src/api/common/error/RestError"
@@ -27,16 +27,26 @@ import {GENERATED_MAX_ID, getElementId} from "../../../../src/api/common/utils/E
 import {TypeRef} from "../../../../src/api/common/utils/TypeRef";
 import {GroupDataOS, MetaDataOS} from "../../../../src/api/worker/search/Indexer";
 
-const restClientMock: EntityRestClient = downcast({})
+let SERVER_TIME = Date.now()
+const restClientMock: EntityRestClient = downcast({
+	getRestClient() {
+		return {
+			getServerTimestamp() {
+				return SERVER_TIME
+			}
+		}
+	}
+})
 
 o.spec("Indexer test", () => {
 
 	o("init new db", function (done) {
 		let metadata = {}
+		const expectedKeys = [ Metadata.userEncDbKey, Metadata.lastEventIndexTimeMs ]
 		let transaction = {
 			get: (os, key) => {
 				o(os).equals(MetaDataOS)
-				o(key).equals(Metadata.userEncDbKey)
+				o(key).equals(expectedKeys.shift())
 				return Promise.resolve(null)
 			},
 			getAll: (os) => {
@@ -155,17 +165,18 @@ o.spec("Indexer test", () => {
 		})
 	})
 
-	o("init existing db out of sync", function (done) {
+	o("init existing db out of sync", async () => {
 		let userGroupKey = aes128RandomKey()
 		let dbKey = aes256RandomKey()
 		let userEncDbKey = encrypt256Key(userGroupKey, dbKey)
 		let encDbIv = aes256Encrypt(dbKey, fixedIv, random.generateRandomData(IV_BYTE_LENGTH), true, false)
 		let transaction = {
-			get: (os, key) => {
-				if (os == MetaDataOS && key == Metadata.userEncDbKey) return Promise.resolve(userEncDbKey)
-				if (os == MetaDataOS && key == Metadata.mailIndexingEnabled) return Promise.resolve(true)
-				if (os == MetaDataOS && key == Metadata.excludedListIds) return Promise.resolve(["excluded-list-id"])
-				if (os == MetaDataOS && key == Metadata.encDbIv) return Promise.resolve(encDbIv)
+			get: async (os, key) => {
+				if (os == MetaDataOS && key == Metadata.userEncDbKey) return userEncDbKey
+				if (os == MetaDataOS && key == Metadata.mailIndexingEnabled) return true
+				if (os == MetaDataOS && key == Metadata.excludedListIds) return ["excluded-list-id"]
+				if (os == MetaDataOS && key == Metadata.encDbIv) return encDbIv
+				if (os == MetaDataOS && key == Metadata.lastEventIndexTimeMs) return SERVER_TIME
 				return Promise.resolve(null)
 			},
 			wait: () => Promise.resolve(),
@@ -196,18 +207,63 @@ o.spec("Indexer test", () => {
 		let user = createUser()
 		user.userGroup = createGroupMembership()
 		user.userGroup.group = "user-group-id"
-		indexer.init(user, userGroupKey).then(() => {
-			o(indexer.db.key).deepEquals(dbKey)
+		await indexer.init(user, userGroupKey)
+		o(indexer.db.key).deepEquals(dbKey)
 
-			o(indexer._loadGroupDiff.args).deepEquals([user])
-			o(indexer._updateGroups.args).deepEquals([user, groupDiff])
+		o(indexer._loadGroupDiff.args).deepEquals([user])
+		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
 
-			o(indexer._contact.indexFullContactList.args).deepEquals([user.userGroup.group])
-			o(indexer._groupInfo.indexAllUserAndTeamGroupInfosForAdmin.args).deepEquals([user])
-			o(indexer._loadPersistentGroupData.args).deepEquals([user])
-			o(indexer._loadNewEntities.args).deepEquals([persistentGroupData])
-			done()
+		o(indexer._contact.indexFullContactList.args).deepEquals([user.userGroup.group])
+		o(indexer._groupInfo.indexAllUserAndTeamGroupInfosForAdmin.args).deepEquals([user])
+		o(indexer._loadPersistentGroupData.args).deepEquals([user])
+		o(indexer._loadNewEntities.args).deepEquals([persistentGroupData])
+
+	})
+
+	o("init existing db out of date", async function () {
+		let userGroupKey = aes128RandomKey()
+		let dbKey = aes256RandomKey()
+		let userEncDbKey = encrypt256Key(userGroupKey, dbKey)
+		let encDbIv = aes256Encrypt(dbKey, fixedIv, random.generateRandomData(IV_BYTE_LENGTH), true, false)
+		let transaction = {
+			get: async (os, key) => {
+				if (os == MetaDataOS && key == Metadata.userEncDbKey) return userEncDbKey
+				if (os == MetaDataOS && key == Metadata.mailIndexingEnabled) return true
+				if (os == MetaDataOS && key == Metadata.excludedListIds) return ["excluded-list-id"]
+				if (os == MetaDataOS && key == Metadata.encDbIv) return encDbIv
+				if (os == MetaDataOS && key == Metadata.lastEventIndexTimeMs) return SERVER_TIME - ENTITY_EVENT_BATCH_TTL_MS - (1000 * 60 * 60 * 24)
+				return Promise.resolve(null)
+			},
+			wait: () => Promise.resolve(),
+			// So that we don't run into "no group ids' check
+			getAll: () => Promise.resolve([{key: "key", value: "value"}])
+		}
+
+		let groupDiff = [{groupDiff: "dummy"}]
+		let persistentGroupData = [{persistentGroupData: "dummy"}]
+		const indexer = mock(new Indexer(restClientMock, ({sendIndexState: () => Promise.resolve()}: any), browserDataStub, restClientMock), (mock) => {
+			mock.db.initialized = Promise.resolve()
+			mock.db.dbFacade = {
+				open: o.spy(() => Promise.resolve()),
+				createTransaction: () => Promise.resolve(transaction),
+			}
+			mock._loadGroupDiff = o.spy(() => Promise.resolve(groupDiff))
+			mock._updateGroups = o.spy(() => Promise.resolve())
+			mock._mail.updateCurrentIndexTimestamp = o.spy(() => Promise.resolve())
+
+			mock._contact.indexFullContactList = o.spy(() => Promise.resolve())
+			mock._groupInfo.indexAllUserAndTeamGroupInfosForAdmin = o.spy(() => Promise.resolve())
+
+			mock._loadPersistentGroupData = o.spy(() => Promise.resolve(persistentGroupData))
+			mock.disableMailIndexing = o.spy()
 		})
+
+		let user = createUser()
+		user.userGroup = createGroupMembership()
+		user.userGroup.group = "user-group-id"
+
+		await indexer.init(user, userGroupKey)
+		o(indexer.disableMailIndexing.callCount).equals(1)
 	})
 
 	o("_loadGroupDiff", function (done) {
