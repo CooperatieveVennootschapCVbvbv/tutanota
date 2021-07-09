@@ -160,7 +160,7 @@ export class RestClient {
 	 * The server time offset is calculated based on the date field in the header returned from REST requests.
 	 * will throw an error if offline or no rest requests have been made yet
 	 */
-	getServerTimestamp(): number {
+	getServerTimestampMs(): number {
 		const timeOffset = assertNotNull(this._serverTimeOffsetMs, "You can't get server time if no rest requests were made")
 		return Date.now() + timeOffset
 	}

@@ -520,3 +520,14 @@ export function mapNullable<T, U>(val: ?T, action: T => U): U | null {
 export function isSecurityError(e: any): boolean {
 	return e instanceof DOMException && (e.name === "SecurityError" || e.code === e.SECURITY_ERR)
 }
+
+/**
+ * not interested in any fancy calendar edge cases, only use this where approximation is ok
+ */
+export function millisToDays(millis: number): number {
+	return millis / 1000 / 60 / 60 / 24
+}
+
+export function daysToMillis(days: number): number {
+	return 24 * 60 * 60 * 1000 * days
+}
